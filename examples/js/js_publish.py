@@ -1,3 +1,5 @@
+from nats.js.api import StreamConfig, RetentionPolicy
+
 from panini import app as panini_app
 
 app = panini_app.App(
@@ -23,16 +25,15 @@ def get_message():
     }
 
 
-@app.timer_task(interval=2)
+@app.timer_task(interval=0.7)
 async def publish_periodically():
     subject = "test.app2.stream"
     message = get_message()
     global NUM
-    NUM+=1
+    NUM += 1
     message['counter'] = NUM
-    await app.publish(subject=subject, message=message)
+    await app.publish(subject=subject, message=message, data_type="json")
     log.info(f"sent {message}")
-
 
 
 if __name__ == "__main__":

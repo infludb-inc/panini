@@ -1,8 +1,8 @@
 import inspect
 import jsonschema
 from jsonschema import validate
-from .exceptions import ValidationError
-from .utils.logger import Logger
+from panini.exceptions import ValidationError
+from panini.utils.logger import Logger
 
 _logger = Logger
 
@@ -18,7 +18,7 @@ class Validator:
     def set_logger():
         global _logger
         if _logger is None:
-            from .app import _app
+            from panini.app import _app
             _logger = _app.logger
 
     @classmethod
@@ -41,7 +41,7 @@ class Validator:
                 result.append(cls._validate_message(cls, m, schema))
             return result
         message = cls._validate_message(message, schema)
-        print(f'Validation status: {message}')
+        # print(f'Validation status TRUE Message: {message}') #validation status check
         return message
 
     @classmethod
