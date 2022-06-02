@@ -13,3 +13,4 @@ python-json-logger==2.0.1
 yarl==1.7.2
 ujson==5.1.0
 websocket-client==1.2.3
+jsonschema

@@ -4,7 +4,7 @@ import os
 import typing
 import uuid
 from types import CoroutineType, FunctionType
-
+import json
 
 from panini.managers.nats_client import NATSClient
 from .exceptions import InitializingEventManagerError
@@ -19,6 +19,7 @@ from .utils.helper import (
 )
 
 _app = None
+JSON_SCHEMA_PATH = os.getenv('JSON_SCHEMA_PATH')
 
 
 class App:
@@ -139,9 +140,18 @@ class App:
 
         self.http = web.RouteTableDef()  # for http decorator
         if web_app:
-            self.http_server = HTTPServer(routes=self.http, loop=self.loop, web_app=web_app, web_server_params=params)
+            self.http_server = HTTPServer(
+                routes=self.http,
+                loop=self.loop,
+                web_app=web_app,
+                web_server_params=params)
         else:
-            self.http_server = HTTPServer(routes=self.http, loop=self.loop, host=host, port=port, web_server_params=params)
+            self.http_server = HTTPServer(
+                routes=self.http,
+                loop=self.loop,
+                host=host,
+                port=port,
+                web_server_params=params)
 
     def add_filters(self, include: list = None, exclude: list = None):
         """
@@ -185,13 +195,28 @@ class App:
             data_type="json",
             validator: type = None,
             validation_error_cb: FunctionType = None,
+            workers_count=None,
+            app=_app
     ):
+        consumer_queue = subject.replace(
+            ".*.",
+            "_").replace(
+            ".*",
+            "_").replace(
+            ".",
+            "_").strip("_")
+
+        with open(f"{JSON_SCHEMA_PATH}/{consumer_queue}.json") as json_file:
+            validator_schema = json.load(json_file)
         return self._event_manager.listen(
             subject=subject,
+            consumer_queue=consumer_queue,
             data_type=data_type,
             validator=validator,
-            validation_error_cb=validation_error_cb
-
+            validator_schema=validator_schema,
+            validation_error_cb=validation_error_cb,
+            workers_count=workers_count,
+            app=_app
         )
 
     async def publish(
@@ -262,7 +287,11 @@ class App:
             headers=headers
         )
 
-    def subscribe_new_subject_sync(self, subject: str, callback: CoroutineType, **kwargs):
+    def subscribe_new_subject_sync(
+            self,
+            subject: str,
+            callback: CoroutineType,
+            **kwargs):
         return self.nats.subscribe_new_subject_sync(subject, callback, **kwargs)
 
     async def subscribe_new_subject(
@@ -336,8 +365,6 @@ class App:
             self.http_server.start_server()
         else:
             loop.run_until_complete(asyncio.gather(*tasks))
-
-
 
 
 def get_app() -> App:
